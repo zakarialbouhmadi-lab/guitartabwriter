@@ -1,112 +1,91 @@
-class Tablature {
-  ArrayList<int[]> list;
+class Tablature {  //<>//
   float x, y, w, h;
-  int maxDisplayNotes = 20, selectedFret=0;
-  String[] stringNames = {"e", "B", "G", "D", "A", "E"};
+  int highlightedChord = -1;
+  ArrayList<Chord> chords=new ArrayList<>();
   
-  // Cache the strings so we don't recreate them 60 times a second
-  String[] displayLines; 
-  
-  color textColor = color(50), selectedColor=color(220, 20,20);
-  int textSize = 14;
-  float charWidth = 10; // Fixed width for every single character/dash
+
+  final int TEXT_SIZE = 16, STRINGS=6;
+  final float CHAR_WIDTH = 20;
+  final byte CHORD_LENGTH = 4;
+  final String[] stringNames = {"e", "B", "G", "D", "A", "E"};
 
   Tablature(float x, float y, float w, float h) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    this.list = new ArrayList<int[]>();
-    this.displayLines = new String[6];
-    buildStrings(); // Build the initial empty lines
-  }
-  
-  void selectRight(){
-    if(selectedFret<list.size()){
-      selectedFret++;
-      buildStrings();
-    }
-  }
-  
-  void selectLeft(){
-    if(selectedFret>1){
-      selectedFret--;
-      buildStrings();
-    }
-      
+    this.x = x; this.y = y; this.w = w; this.h = h;
   }
 
-  void add(int fret, int string) {
-    list.add(new int[]{fret, string}); //<>// //<>//
-    buildStrings(); // ONLY rebuild strings when a note is added!
-    selectedFret=list.size();
+  boolean selectRight() { 
+    if (highlightedChord >= 0 && highlightedChord < chords.size()-1){
+      highlightedChord++;
+      return true;
+    }
+    return false;
   }
   
-  void remove(){
-    if(list.isEmpty() || selectedFret<1)
+  boolean selectLeft() { 
+    if (highlightedChord > 0){
+      highlightedChord--;
+      return true;
+    } 
+    return false;
+  }
+
+  void add(int[] chord) {
+    chords.add(++highlightedChord, new Chord(chord));
+  }
+  
+  void updateSelected(int[] chord){
+    chords.add(highlightedChord, new Chord(chord));
+    chords.remove(highlightedChord+1);
+  }
+  
+  void addSpace() {
+    chords.add(++highlightedChord, new Chord());
+  }
+  
+  int[] getHighlightedChord(){ //<>//
+     return chords.isEmpty() ? new Chord().chord :chords.get(highlightedChord).chord;
+  }
+  
+
+  void remove() {
+    if (chords.isEmpty()) 
       return;
+    chords.remove(highlightedChord);
+    if (highlightedChord > 0 || chords.isEmpty()) highlightedChord--;
     
-    list.remove(--selectedFret);
-    buildStrings(); // ONLY rebuild strings when a note is added!
+    println(highlightedChord);
   }
 
-  // Parses the ArrayList and builds the 6 strings of text
-  void buildStrings() {
-    int startIdx = Math.max(0, list.size() - maxDisplayNotes);
-    
-    // Build the initial prefixes
-    for (int i = 0; i < 6; i++) {
-      displayLines[i] = " " + stringNames[i] + "|-";
-    }
 
-    // Build the text strings with the 3-character "cell" rule
-    for (int i = startIdx; i < list.size(); i++) {
-      int[] note = list.get(i);
-      int fret = note[0];
-      int stringIdx = note[1];
-
-      for (int s = 0; s < 6; s++) {
-        if (s == stringIdx) {
-          if (fret >= 10) {
-            displayLines[s] += fret + "-"; 
-          } else {
-            displayLines[s] += fret + "--"; 
-          }
-        } else {
-          displayLines[s] += "---"; 
-        }
-      }
-    }
-  }
 
   void draw() {
-    println(selectedFret);
-    // Draw background frame
     noFill();
     stroke(0);
     strokeWeight(1);
     rect(x, y, w, h);
-    textSize(textSize);
-    textAlign(CENTER, TOP); // Center each character on its coordinate
-
-    float lineSpacing = h / 6;
     
-    // Draw Character by Character from our cached strings
-    for (int i = 0; i < 6; i++) {
-      String line = displayLines[i];
-      float lineY = y + 15 + (i * lineSpacing);
-      
-      for (int j = 0; j < line.length(); j++) {
-        char c = line.charAt(j);
-        
-        // Calculate the exact X position for this character
-        float charX = x + (j * charWidth); 
-        //set text color
-        fill(selectedFret*3>=j-3 && selectedFret*3<j? selectedColor:textColor);        
-        // Only draw if it fits inside the bounding box
-        if (charX < x + w) {
-          text(c, charX, lineY);
-        }
+    textSize(TEXT_SIZE);
+    textAlign(CENTER, TOP);
+    float lineSpacing = h / STRINGS; 
+    
+    //draw prefix
+    for (int i = 0; i < stringNames.length; i++) {
+      float lineY = y + 15 + (i * lineSpacing);       
+      fill(C_TEXT);
+      text(stringNames[i]+"|-", x + (CHAR_WIDTH / 2), lineY);
+    }
+    
+    for (int j = 0; j < chords.size(); j++) {
+        String[]c=chords.get(j).toStringArray();
+        float charX = x + ((j+1) * CHAR_WIDTH);
+
+        for (int i=0;i<c.length;i++) {
+            float lineY = y + 15 + (i * lineSpacing);
+            // --- CHANGED: only text color highlight ---
+            if (j == highlightedChord) fill(C_HIGHLIGHT);
+            else fill(C_TEXT);
+            
+            text(c[i], charX + (CHAR_WIDTH / 2), lineY);
       }
     }
   }

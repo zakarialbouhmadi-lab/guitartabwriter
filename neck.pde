@@ -1,121 +1,126 @@
 class Neck {
-  // --- Positional Attributes ---
   float w, h, x, y;
-  float df, ds; // Pre-calculated distances
-  int totalFrets = 12, selectedFret = -1, selectedString = -1;
+  float df, ds; 
+  int totalFrets = 24, hoveredFret = -1, hoveredString = -1;
   boolean selectMultiple = false;
-  String[] stringNames = {"e", "B", "G", "D", "A", "E"};
-
-  // --- Color Palette Attributes ---
-  color boardColor      = color(120, 75, 35);  
-  color nutColor        = color(80, 50, 20);   
-  color fretWireColor   = color(180);          
-  color stringColor     = color(#FCE387);          
-  color highlightColor  = color(220, 20, 20);  
-  color textColor       = color(50);           
-  color inlayColor      = color(200, 200, 200, 180); 
-  color cursorColor     = color(220, 20, 20, 125);   
+  Chord selectedChord;
+  PGraphics pg;
 
   Neck(float x, float y, float w, float h) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-    
-    // Pre-calculate spacing to save CPU in draw loop
+    this.x = x; this.y = y; this.w = w; this.h = h;
     this.df = w / (totalFrets + 1);  
-    this.ds = h / 6;                 
+    this.ds = h / 6;
+    this.selectedChord = new Chord();
+    
+    pg = createGraphics((int)w + 100, (int)h + 50);
+    renderStatic();
   }
-  
-  void selectMultiple(boolean b){
-    this.selectMultiple = b;
+
+  void renderStatic() {
+    pg.beginDraw();
+    pg.clear();
+    
+    float offX = 50;
+    float offY = 20;
+
+    pg.textAlign(CENTER, BOTTOM);
+    pg.textSize(14);
+    pg.fill(C_TEXT);
+    for (int i = 0; i <= totalFrets; i++) {
+      pg.text(i, offX + (i * df) + (df / 2), offY - 5);
+    }
+
+    for (int i = 0; i <= totalFrets; i++) {
+      pg.fill(i == 0 ? C_NUT : C_BOARD);
+      pg.noStroke();
+      pg.rect(offX + (i * df), offY, df, h);
+    }
+
+    pg.fill(C_INLAY);
+    for (int i = 1; i <= totalFrets; i++) {
+      float centerX = offX + (i * df) + (df / 2);
+      float centerY = offY + (h / 2);
+      if (i == 3 || i == 5 || i == 7 || i == 9 || i == 15 || i == 17 || i == 19) {
+        pg.ellipse(centerX, centerY, 15, 15);
+      } else if (i == 12 || i == 24) {
+        pg.ellipse(centerX, centerY - (h / 6), 15, 15);
+        pg.ellipse(centerX, centerY + (h / 6), 15, 15);
+      }
+    }
+
+    pg.stroke(C_FRET_WIRE);
+    pg.strokeWeight(2);
+    for (int i = 0; i <= totalFrets; i++) {
+      float fx = offX + (i * df);
+      pg.line(fx, offY, fx, offY + h);
+    }
+
+    pg.textAlign(RIGHT, CENTER);
+    for (int i = 0; i < 6; i++) {
+      float sy = offY + (ds / 2) + (i * ds);
+      pg.fill(C_TEXT);
+      pg.text(TUNING[i], offX - 10, sy);
+      pg.stroke(C_STRING);
+      pg.strokeWeight(1 + (i * 0.5));
+      pg.line(offX, sy, offX + w, sy);
+    }
+    
+    pg.endDraw();
   }
 
   void draw() {
-    // 1. Draw Fret Numbers (on top)
-    textAlign(CENTER, BOTTOM);
-    for (int i = 0; i <= totalFrets; i++) {
-      applyTextStyle(selectedFret == i);
-      text(i, x + (i * df) + (df / 2), y - 5);
-    }
-
-    // 2. Draw Neck Board
-    for (int i = 0; i <= totalFrets; i++) {
-      fill(i == 0 ? nutColor : boardColor);
+    image(pg, x - 50, y - 20);
+    
+    if (selectMultiple) {
+      fill(C_HIGHLIGHT);
       noStroke();
-      rect(x + (i * df), y, df, h);
-    }
-
-    // 3. Draw Fret Dots (Inlays)
-    fill(inlayColor);
-    for (int i = 1; i <= totalFrets; i++) {
-      float centerX = x + (i * df) + (df / 2);
-      float centerY = y + (h / 2);
-      if (i == 5 || i == 7 || i == 9) {
-        ellipse(centerX, centerY, 15, 15);
-      } else if (i == 12) {
-        ellipse(centerX, centerY - (h / 6), 15, 15);
-        ellipse(centerX, centerY + (h / 6), 15, 15);
+      for (int i = 0; i < selectedChord.chord.length; i++) {
+        int fret = selectedChord.chord[i];
+        if (fret != -1) { 
+           float fx = x + (fret * df) + (df / 2);
+           float fy = y + (i * ds) + (ds / 2);
+           ellipse(fx, fy, 25, 25);
+        }
       }
-    }
-
-    // 4. Draw Fret Wires
-    stroke(fretWireColor);
-    strokeWeight(2);
-    for (int i = 0; i <= totalFrets; i++) {
-      float fx = x + (i * df);
-      line(fx, y, fx, y + h);
-    }
-
-    // 5. Draw Strings & Labels
-    textAlign(RIGHT, CENTER);
-    for (int i = 0; i < 6; i++) {
-      float sy = y + (ds / 2) + (i * ds);
-      
-      // Label
-      applyTextStyle(selectedString == i);
-      text(stringNames[i], x - 10, sy);
-      
-      // String logic
-      if (selectedString == i) {
-        stroke(highlightColor);
-        strokeWeight(1 + (i * 0.7));
-      } else {
-        stroke(stringColor);
-        strokeWeight(1 + (i * 0.5));
-      }
-      line(x, sy, x + w, sy);
     }
     
-    // 6. Draw Cursor
-    if (selectedFret >= 0 && selectedString >= 0) {
+    if (hoveredFret >= 0 && hoveredString >= 0) {
       noStroke();
-      fill(cursorColor);
-      ellipse(mouseX, mouseY, 20, 20);
+      fill(C_CURSOR);
+      float snapX = x + (hoveredFret * df) + (df / 2);
+      float snapY = y + (hoveredString * ds) + (ds / 2);
+      ellipse(snapX, snapY, 30, 30);
     }
-  }
-
-  void applyTextStyle(boolean isHighlighted) {
-    if (isHighlighted) {
-      fill(highlightColor);
-      textSize(18);
-    } else {
-      fill(textColor);
-      textSize(14);
-    }
-  }
-  
-  boolean intersectsWithCursor() {
-     return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
   }
 
   void update() {
-    if (intersectsWithCursor()) {
-      selectedString = floor((mouseY - y) / ds);
-      selectedFret = floor((mouseX - x) / df);
-      return;
+    if (isHovered()) {
+      hoveredString = floor((mouseY - y) / ds);
+      hoveredFret = floor((mouseX - x) / df);
+    } else {
+      hoveredString = -1;
+      hoveredFret = -1;
     }
-    selectedString = -1;
-    selectedFret = -1;
+  }
+  
+  void changeSelectionMode(boolean selectMultiple) {
+      this.selectMultiple = selectMultiple;
+      if (selectMultiple) this.selectedChord = new Chord();
+  }
+
+  boolean isHovered() {
+    return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+  }
+  
+  void onClick() {
+    if (!selectMultiple)
+      selectedChord = new Chord();
+
+    
+    if (selectedChord.chord[hoveredString] == hoveredFret)
+        selectedChord.chord[hoveredString] = -1;
+    else { 
+      selectedChord.chord[hoveredString] = hoveredFret;
+    }
   }
 }
