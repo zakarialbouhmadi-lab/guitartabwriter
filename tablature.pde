@@ -29,8 +29,10 @@ class Tablature {  //<>//
     return false;
   }
 
-  void add(int[] chord) {
-    chords.add(++highlightedChord, new Chord(chord));
+  void add(int[] chord, boolean palmMute) {
+    Chord c = new Chord(chord);
+    c.palmMute = palmMute;
+    chords.add(++highlightedChord, c);
   }
   
   void updateSelected(int[] chord){
@@ -42,8 +44,8 @@ class Tablature {  //<>//
     chords.add(++highlightedChord, new Chord());
   }
   
-  int[] getHighlightedChord(){ //<>//
-     return chords.isEmpty() ? new Chord().chord :chords.get(highlightedChord).chord;
+  Chord getHighlightedChord(){ //<>//
+     return chords.isEmpty() ? new Chord() : new Chord(chords.get(highlightedChord));
   }
   
 
@@ -66,26 +68,27 @@ class Tablature {  //<>//
     
     textSize(TEXT_SIZE);
     textAlign(CENTER, TOP);
-    float lineSpacing = h / STRINGS; 
+    float lineSpacing = h / (STRINGS+1); 
+    fill(C_TEXT);
     
     //draw prefix
-    for (int i = 0; i < stringNames.length; i++) {
-      float lineY = y + 15 + (i * lineSpacing);       
-      fill(C_TEXT);
-      text(stringNames[i]+"|-", x + (CHAR_WIDTH / 2), lineY);
+    for (int i = 1; i <= stringNames.length; i++) {    
+      float lineY = y  + (i * lineSpacing);       
+      text(stringNames[i-1]+"|-", x + (CHAR_WIDTH / 2), lineY);
     }
     
+    // draw chords
+    
     for (int j = 0; j < chords.size(); j++) {
+        if (j == highlightedChord) fill(C_HIGHLIGHT); else fill(C_TEXT);
         String[]c=chords.get(j).toStringArray();
         float charX = x + ((j+1) * CHAR_WIDTH);
-
-        for (int i=0;i<c.length;i++) {
-            float lineY = y + 15 + (i * lineSpacing);
-            // --- CHANGED: only text color highlight ---
-            if (j == highlightedChord) fill(C_HIGHLIGHT);
-            else fill(C_TEXT);
-            
-            text(c[i], charX + (CHAR_WIDTH / 2), lineY);
+         //draw palm mute           
+        if(chords.get(j).palmMute) 
+          text("X", charX + (CHAR_WIDTH / 2), y);
+        for (int i=1;i<=c.length;i++) {
+            float lineY = y + (i * lineSpacing);            
+            text(c[i-1], charX + (CHAR_WIDTH / 2), lineY);
       }
     }
   }

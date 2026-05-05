@@ -3,7 +3,7 @@ Tablature tab;
 ArrayList<Button> uiElements = new ArrayList<Button>();
 
 Button buttonClear, buttonAdd, buttonUpdate;
-ToggleSwitch toggleSelectMultiple;
+ToggleSwitch toggleSelectMultiple, togglePalmMute;
 
 void setup() {
   size(1200,800,P2D);
@@ -26,9 +26,10 @@ void initializeUI() {
   // --- Initialize Sidebar Buttons ---
   float group1Y = height * 0.05;
   toggleSelectMultiple = new ToggleSwitch(sidebarX, group1Y, btnW, btnH, "CHORDS");
-  buttonAdd   = new Button(sidebarX, group1Y + spacing, btnW, btnH, "ADD");
-  buttonUpdate = new Button(sidebarX, group1Y + spacing * 2, btnW, btnH, "UPDATE");
-  buttonClear = new Button(sidebarX, group1Y + spacing * 3, btnW, btnH, "CLEAR");
+  togglePalmMute = new ToggleSwitch(sidebarX, group1Y+ spacing, btnW, btnH, "P.MUTE");
+  buttonAdd   = new Button(sidebarX, group1Y + spacing*2, btnW, btnH, "ADD");
+  buttonUpdate = new Button(sidebarX, group1Y + spacing * 3, btnW, btnH, "UPDATE");
+  buttonClear = new Button(sidebarX, group1Y + spacing * 4, btnW, btnH, "CLEAR");
   buttonAdd.isEnabled = false;
   buttonClear.isEnabled = false;
   buttonUpdate.isEnabled = false;
@@ -44,6 +45,7 @@ void initializeUI() {
 
   // Add all to list for easy rendering
   uiElements.add(toggleSelectMultiple);
+  uiElements.add(togglePalmMute);
   uiElements.add(buttonAdd);
   uiElements.add(buttonClear);
   uiElements.add(buttonRemove);
@@ -65,10 +67,20 @@ void initializeUI() {
   });
   
   buttonRemove.setListener(new ClickListener() { void onButtonClick(Button b) { tab.remove(); if(!tab.chords.isEmpty()) neck.selectedChord=new Chord(tab.getHighlightedChord());} });
-  buttonRight.setListener(new ClickListener() { void onButtonClick(Button b) { if(tab.selectRight())         neck.selectedChord=new Chord(tab.getHighlightedChord());} });
-  buttonLeft.setListener(new ClickListener() { void onButtonClick(Button b) { if(tab.selectLeft())         neck.selectedChord=new Chord(tab.getHighlightedChord());} });
+  buttonRight.setListener(new ClickListener() { void onButtonClick(Button b) { 
+        if(!tab.selectRight())
+          return;
+        neck.selectedChord=new Chord(tab.getHighlightedChord());
+        togglePalmMute.isActive = tab.getHighlightedChord().palmMute;
+   }});
+  buttonLeft.setListener(new ClickListener() { void onButtonClick(Button b) { 
+        if(!tab.selectLeft())
+          return;
+        neck.selectedChord=new Chord(tab.getHighlightedChord());
+        togglePalmMute.isActive = tab.getHighlightedChord().palmMute;
+   }});
   buttonClear.setListener(new ClickListener() { void onButtonClick(Button b) { neck.selectedChord = new Chord(); } });
-  buttonAdd.setListener(new ClickListener() { void onButtonClick(Button b) { tab.add(neck.selectedChord.chord); } });
+  buttonAdd.setListener(new ClickListener() { void onButtonClick(Button b) { tab.add(neck.selectedChord.chord, togglePalmMute.isActive); } });
   buttonSpace.setListener(new ClickListener() { void onButtonClick(Button b) { tab.addSpace(); neck.selectedChord=new Chord(tab.getHighlightedChord()); } });
    buttonUpdate.setListener(new ClickListener() { 
      void onButtonClick(Button b) {
@@ -95,7 +107,7 @@ void mouseClicked() {
   if (neck.isHovered()) {
      neck.onClick();
      if (!neck.selectMultiple) {
-       tab.add(neck.selectedChord.chord);
+       tab.add(neck.selectedChord.chord, togglePalmMute.isActive);
      }
   }
   

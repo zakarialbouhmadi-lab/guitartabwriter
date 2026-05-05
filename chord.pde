@@ -1,9 +1,14 @@
 class Chord {
-  final int[] chord = new int[]{-1,-1,-1,-1,-1,-1};
+  int[] chord = new int[]{-1,-1,-1,-1,-1,-1};
   boolean palmMute=false;
   
   Chord() {
     return;
+  }
+  
+  Chord(Chord c){
+   System.arraycopy(c.chord, 0,this.chord,0,  c.chord.length);
+   this.palmMute=c.palmMute;
   }
   
   Chord(int[] chord) {
